@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class DestructablePlatform : MonoBehaviour
+public class DestroyablePlatform : MonoBehaviour
 {
 	private SpriteRenderer spriteRenderer;
 	private Texture2D texture;
@@ -41,10 +41,13 @@ public class DestructablePlatform : MonoBehaviour
 
 	private void Split()
 	{
-		DestructablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestructablePlatform>();
-		newPlatform.polygonCollider.SetPath(0, polygonCollider.GetPath(1));
-		newPlatform.polygonCollider.pathCount = 1;
-		newPlatform.RemoveSplitPixels();
+		for (int i = 1; i < polygonCollider.pathCount; i++)
+		{
+			DestroyablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestroyablePlatform>();
+			newPlatform.polygonCollider.pathCount = 1;
+			newPlatform.polygonCollider.SetPath(0, polygonCollider.GetPath(i));
+			newPlatform.RemoveSplitPixels();
+		}
 
 		polygonCollider.pathCount = 1;
 		RemoveSplitPixels();
@@ -55,8 +58,6 @@ public class DestructablePlatform : MonoBehaviour
 		Rect boundingBox = GetColliderBoundingBox(polygonCollider);
 		Color[] pixels = texture.GetPixels();
 		Color transparent = new Color(0, 0, 0, 0);
-
-
 		for (int y = 0; y < texture.height; y++)
 		{
 			for (int x = 0; x < texture.width; x++)
