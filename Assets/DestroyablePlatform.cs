@@ -1,3 +1,6 @@
+using NUnit.Framework;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class DestroyablePlatform : MonoBehaviour
@@ -39,19 +42,60 @@ public class DestroyablePlatform : MonoBehaviour
 		}
 	}
 
+	bool IsPointInPolygon(Vector2[] polygon, Vector2 testPoint)
+	{
+		bool result = false;
+		int j = polygon.Length - 1;
+		for (int i = 0; i < polygon.Length; i++)
+		{
+			if (polygon[i].y < testPoint.y && polygon[j].y >= testPoint.y ||
+				polygon[j].y < testPoint.y && polygon[i].y >= testPoint.y)
+			{
+				if (polygon[i].x + (testPoint.y - polygon[i].y) / (polygon[j].y - polygon[i].y) * (polygon[j].x - polygon[i].x) < testPoint.x)
+				{
+					result = !result;
+				}
+			}
+			j = i;
+		}
+		return result;
+	}
+
 	private void Split()
 	{
+		Vector2[] mainPath = polygonCollider.GetPath(0);
+		List<Vector2[]> remainingPaths = new();
+		remainingPaths.Add(mainPath);
+
 		for (int i = 1; i < polygonCollider.pathCount; i++)
 		{
-			DestroyablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestroyablePlatform>();
-			newPlatform.polygonCollider.pathCount = 1;
-			newPlatform.polygonCollider.SetPath(0, polygonCollider.GetPath(i));
-			newPlatform.RemoveSplitPixels();
-		}
+			Vector2[] currentPath = polygonCollider.GetPath(i);
+			bool isContained = false;
 
-		polygonCollider.pathCount = 1;
+			foreach (Vector2 point in currentPath)
+			{
+				if (IsPointInPolygon(mainPath, point))
+				{
+					isContained = true;
+					remainingPaths.Add(currentPath);
+					break;
+				}
+			}
+
+			if (!isContained)
+			{
+				DestroyablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestroyablePlatform>();
+				newPlatform.polygonCollider.pathCount = 1;
+				newPlatform.polygonCollider.SetPath(0, currentPath);
+				newPlatform.RemoveSplitPixels();
+			}
+		}
+		polygonCollider.pathCount = 0;
+		polygonCollider.pathCount = remainingPaths.Count;
+		for (int i = 0; i < polygonCollider.pathCount; i++) polygonCollider.SetPath(i, remainingPaths[i]);
 		RemoveSplitPixels();
 	}
+
 
 	private void RemoveSplitPixels()
 	{
