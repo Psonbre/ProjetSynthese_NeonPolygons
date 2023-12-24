@@ -20,6 +20,16 @@ public class DestroyablePlatform : MonoBehaviour
 		UpdatePixelCount();
 	}
 
+	void FixedUpdate()
+	{
+		if (checkForSplit) CheckForSplit();
+	}
+
+	private void OnTriggerStay2D(Collider2D collision)
+	{
+		RemovePixels(collision);
+	}
+
 	private Texture2D DuplicateTexture(Texture2D original)
 	{
 		Texture2D duplicate = new Texture2D(original.width, original.height, TextureFormat.RGBA32, false);
@@ -28,45 +38,54 @@ public class DestroyablePlatform : MonoBehaviour
 		return duplicate;
 	}
 
-	void Update()
-	{
-		if (Input.GetMouseButton(0))
-		{
-			Vector2 clickPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			if(checkForSplit) CheckForSplit();
-			if (spriteRenderer.bounds.Contains(clickPos))
-			{
-				RemovePixels(clickPos, 20);
-			}
-		}
-	}
-	private void RemovePixels(Vector2 position, int radius)
-	{
-		radius = Mathf.RoundToInt(radius / transform.localScale.x);
-		bool removedPixels = false;
-		Vector3 localPos = transform.InverseTransformPoint(position);
-		float pixelsPerUnit = spriteRenderer.sprite.pixelsPerUnit;
-		Vector2 texturePos = new Vector2(localPos.x * pixelsPerUnit, localPos.y * pixelsPerUnit) + new Vector2(texture.width / 2, texture.height / 2);
 
-		int leftBound = Mathf.Max((int)texturePos.x - radius, 0);
-		int bottomBound = Mathf.Max((int)texturePos.y - radius, 0);
-		int width = Mathf.Max(Mathf.Clamp((int)texturePos.x + radius, 0, texture.width) - leftBound,0);
-		int height = Mathf.Max(Mathf.Clamp((int)texturePos.y + radius, 0, texture.height) - bottomBound,0);
+
+	private void RemovePixels(Collider2D collider)
+	{
+		Vector3 spriteCenterInWorld = spriteRenderer.bounds.center;
+		Vector3 colliderCenterInWorld = collider.bounds.center;
+
+		// Convert the center offset to local space
+		Vector3 centerOffsetLocal = transform.InverseTransformPoint(colliderCenterInWorld) - transform.InverseTransformPoint(spriteCenterInWorld);
+		float pixelsPerUnit = spriteRenderer.sprite.pixelsPerUnit;
+
+		// Calculate texture coordinates
+		Vector2 textureCenter = new Vector2(texture.width / 2, texture.height / 2);
+		Vector2 colliderCenterInTexture = textureCenter + new Vector2(centerOffsetLocal.x * pixelsPerUnit, centerOffsetLocal.y * pixelsPerUnit);
+
+		// Calculate collider size in texture space
+		Vector2 colliderSizeInTexture = new Vector2(collider.bounds.size.x * pixelsPerUnit, collider.bounds.size.y * pixelsPerUnit);
+
+		int leftBound = Mathf.Clamp(Mathf.RoundToInt(colliderCenterInTexture.x - colliderSizeInTexture.x / 2), 0, texture.width);
+		int bottomBound = Mathf.Clamp(Mathf.RoundToInt(colliderCenterInTexture.y - colliderSizeInTexture.y / 2), 0, texture.height);
+		int rightBound = Mathf.Clamp(Mathf.RoundToInt(colliderCenterInTexture.x + colliderSizeInTexture.x / 2), 0, texture.width);
+		int topBound = Mathf.Clamp(Mathf.RoundToInt(colliderCenterInTexture.y + colliderSizeInTexture.y / 2), 0, texture.height);
+
+		int width = rightBound - leftBound;
+		int height = topBound - bottomBound;
+
+		if (width <= 0 || height <= 0)
+		{
+			return; // No valid area to modify
+		}
 
 		Color[] pixels = texture.GetPixels(leftBound, bottomBound, width, height);
+		bool removedPixels = false;
+
 		for (int x = 0; x < width; x++)
 		{
 			for (int y = 0; y < height; y++)
 			{
-				float squaredDistance = (x - radius) * (x - radius) + (y - radius) * (y - radius);
+				Vector2 pixelPoint = new Vector2(x + leftBound, y + bottomBound);
+				Vector2 worldPoint = GetPixelToWorld((int)pixelPoint.x, (int)pixelPoint.y);
 
-				if (squaredDistance <= radius * radius)
+				if (collider.OverlapPoint(worldPoint))
 				{
 					int index = y * width + x;
 					if (pixels[index].a > 0f)
 					{
 						removedPixels = true;
-						DisassemblePixel(GetPixelToWorld(x + leftBound, y + bottomBound), pixels[index]);
+						DisassemblePixel(worldPoint, pixels[index]);
 						pixels[index] = new Color(0, 0, 0, 0);
 						ReducePixelCountBy(1);
 					}
@@ -83,6 +102,10 @@ public class DestroyablePlatform : MonoBehaviour
 			checkForSplit = true;
 		}
 	}
+
+
+
+
 	bool IsPointInPolygon(Vector2[] polygon, Vector2 point)
 	{
 		bool isInside = false;
