@@ -13,7 +13,7 @@ public class Pixel : MonoBehaviour
     }
     public void Initialize(Vector2 position, float scale, Color color)
     {
-        rb.velocity = new Vector2(Random.value - 0.5f, Random.value - 0.5f) * 2f;
+        rb.velocity = new Vector2(Random.value - 0.5f, Random.value) * 2f;
         transform.position = position;
         spriteRenderer.color = color;
         transform.localScale = new(scale, scale, scale);

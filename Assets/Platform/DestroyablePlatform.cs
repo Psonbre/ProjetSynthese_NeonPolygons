@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using static UnityEngine.EventSystems.EventTrigger;
 
 public class DestroyablePlatform : MonoBehaviour
 {
@@ -38,22 +37,17 @@ public class DestroyablePlatform : MonoBehaviour
 		return duplicate;
 	}
 
-
-
 	private void RemovePixels(Collider2D collider)
 	{
 		Vector3 spriteCenterInWorld = spriteRenderer.bounds.center;
 		Vector3 colliderCenterInWorld = collider.bounds.center;
 
-		// Convert the center offset to local space
 		Vector3 centerOffsetLocal = transform.InverseTransformPoint(colliderCenterInWorld) - transform.InverseTransformPoint(spriteCenterInWorld);
 		float pixelsPerUnit = spriteRenderer.sprite.pixelsPerUnit;
 
-		// Calculate texture coordinates
 		Vector2 textureCenter = new Vector2(texture.width / 2, texture.height / 2);
 		Vector2 colliderCenterInTexture = textureCenter + new Vector2(centerOffsetLocal.x * pixelsPerUnit, centerOffsetLocal.y * pixelsPerUnit);
 
-		// Calculate collider size in texture space
 		Vector2 colliderSizeInTexture = new Vector2(collider.bounds.size.x * pixelsPerUnit, collider.bounds.size.y * pixelsPerUnit);
 
 		int leftBound = Mathf.Clamp(Mathf.RoundToInt(colliderCenterInTexture.x - colliderSizeInTexture.x / 2), 0, texture.width);
@@ -64,10 +58,7 @@ public class DestroyablePlatform : MonoBehaviour
 		int width = rightBound - leftBound;
 		int height = topBound - bottomBound;
 
-		if (width <= 0 || height <= 0)
-		{
-			return; // No valid area to modify
-		}
+		if (width <= 0 || height <= 0) return;
 
 		Color[] pixels = texture.GetPixels(leftBound, bottomBound, width, height);
 		bool removedPixels = false;
@@ -103,31 +94,19 @@ public class DestroyablePlatform : MonoBehaviour
 		}
 	}
 
-
-
-
-	bool IsPointInPolygon(Vector2[] polygon, Vector2 point)
-	{
-		bool isInside = false;
-		for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
-		{
-			if (((polygon[i].y > point.y) != (polygon[j].y > point.y)) &&
-				(point.x < (polygon[j].x - polygon[i].x) * (point.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x))
-			{
-				isInside = !isInside;
-			}
-		}
-		return isInside;
-	}
-
 	private void CheckForSplit()
 	{
 		checkForSplit = false;
-		if (polygonCollider.pathCount > 1) 
+		if (polygonCollider.pathCount > 1)
 		{
 			Vector2[] mainPath = polygonCollider.GetPath(0);
 			List<Vector2[]> remainingPaths = new();
 			remainingPaths.Add(mainPath);
+
+			GameObject tempObject = new GameObject("TempCollider");
+			PolygonCollider2D tempCollider = tempObject.AddComponent<PolygonCollider2D>();
+			tempCollider.pathCount = 1;
+			tempCollider.SetPath(0, mainPath);
 
 			for (int i = 1; i < polygonCollider.pathCount; i++)
 			{
@@ -136,15 +115,17 @@ public class DestroyablePlatform : MonoBehaviour
 
 				foreach (Vector2 point in currentPath)
 				{
-					if (!IsPointInPolygon(mainPath, point))
+					if (!tempCollider.OverlapPoint(point))
 					{
 						isContained = false;
 						break;
 					}
 				}
 
-				if (isContained) remainingPaths.Add(currentPath);
-
+				if (isContained)
+				{
+					remainingPaths.Add(currentPath);
+				}
 				else
 				{
 					DestroyablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestroyablePlatform>();
@@ -153,6 +134,9 @@ public class DestroyablePlatform : MonoBehaviour
 					newPlatform.RemoveSplitPixels();
 				}
 			}
+
+			Destroy(tempObject);
+
 			polygonCollider.pathCount = 0;
 			polygonCollider.pathCount = remainingPaths.Count;
 			for (int i = 0; i < polygonCollider.pathCount; i++) polygonCollider.SetPath(i, remainingPaths[i]);
@@ -197,14 +181,14 @@ public class DestroyablePlatform : MonoBehaviour
 
 	private void DisassemblePixel(Vector2 pos, Color color)
 	{
-		PixelManager.Instance.GetPixel().Initialize(pos, (1f / spriteRenderer.sprite.pixelsPerUnit) * transform.localScale.x, color);
+		PixelManager.Instance.GetPixel().Initialize(pos, (100f / spriteRenderer.sprite.pixelsPerUnit) * transform.localScale.x, color);
 	}
 
 	private void ReducePixelCountBy(int nb)
 	{
 		pixelCount-=nb;
 		
-		if (pixelCount <= 100 / transform.localScale.x) Destroy(gameObject);
+		if (pixelCount <= 25 / transform.localScale.x) Destroy(gameObject);
 	}
 
 	private void UpdatePixelCount()

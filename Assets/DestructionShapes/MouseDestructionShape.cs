@@ -5,11 +5,13 @@ using UnityEngine;
 public class MouseDestructionShape : MonoBehaviour
 {
     Camera cam;
-    PolygonCollider2D polygonCollider;
+    Collider2D shapeCollider;
     // Start is called before the first frame update
     void Start()
     {
-        polygonCollider = GetComponent<PolygonCollider2D>();
+		shapeCollider = GetComponent<Collider2D>();
+        shapeCollider.isTrigger = true;
+        shapeCollider.enabled = false;
         cam = Camera.main;
     }
 
@@ -18,7 +20,7 @@ public class MouseDestructionShape : MonoBehaviour
     {
         Vector2 pos = cam.ScreenToWorldPoint(Input.mousePosition);
 		transform.position = pos;
-        if (Input.GetMouseButtonDown(0)) polygonCollider.enabled = true;
-        if (Input.GetMouseButtonUp(0)) polygonCollider.enabled = false;
+        if (Input.GetMouseButtonDown(0)) shapeCollider.enabled = true;
+        if (Input.GetMouseButtonUp(0)) shapeCollider.enabled = false;
 	}
 }
