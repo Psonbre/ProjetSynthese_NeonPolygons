@@ -1,7 +1,6 @@
-using NUnit.Framework;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEngine.EventSystems.EventTrigger;
 
 public class DestroyablePlatform : MonoBehaviour
 {
@@ -9,6 +8,7 @@ public class DestroyablePlatform : MonoBehaviour
 	private Texture2D texture;
 	private PolygonCollider2D polygonCollider;
 	private int pixelCount = 100;
+	private bool checkForSplit = false;
 	[SerializeField] private Pixel pixelPrefab;
 
 	void Awake()
@@ -23,6 +23,7 @@ public class DestroyablePlatform : MonoBehaviour
 	private Texture2D DuplicateTexture(Texture2D original)
 	{
 		Texture2D duplicate = new Texture2D(original.width, original.height, TextureFormat.RGBA32, false);
+		duplicate.filterMode = FilterMode.Point;
 		Graphics.CopyTexture(original, duplicate);
 		return duplicate;
 	}
@@ -32,68 +33,108 @@ public class DestroyablePlatform : MonoBehaviour
 		if (Input.GetMouseButton(0))
 		{
 			Vector2 clickPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-
-			if (polygonCollider.pathCount > 1) Split();
-
+			if(checkForSplit) CheckForSplit();
 			if (spriteRenderer.bounds.Contains(clickPos))
 			{
 				RemovePixels(clickPos, 20);
 			}
 		}
 	}
-
-	bool IsPointInPolygon(Vector2[] polygon, Vector2 testPoint)
+	private void RemovePixels(Vector2 position, int radius)
 	{
-		bool result = false;
-		int j = polygon.Length - 1;
-		for (int i = 0; i < polygon.Length; i++)
+		radius = Mathf.RoundToInt(radius / transform.localScale.x);
+		bool removedPixels = false;
+		Vector3 localPos = transform.InverseTransformPoint(position);
+		float pixelsPerUnit = spriteRenderer.sprite.pixelsPerUnit;
+		Vector2 texturePos = new Vector2(localPos.x * pixelsPerUnit, localPos.y * pixelsPerUnit) + new Vector2(texture.width / 2, texture.height / 2);
+
+		int leftBound = Mathf.Max((int)texturePos.x - radius, 0);
+		int bottomBound = Mathf.Max((int)texturePos.y - radius, 0);
+		int width = Mathf.Min((int)texturePos.x + radius, texture.width) - leftBound;
+		int height = Mathf.Min((int)texturePos.y + radius, texture.height) - bottomBound;
+
+		Color[] pixels = texture.GetPixels(leftBound, bottomBound, width, height);
+		for (int x = 0; x < width; x++)
 		{
-			if (polygon[i].y < testPoint.y && polygon[j].y >= testPoint.y ||
-				polygon[j].y < testPoint.y && polygon[i].y >= testPoint.y)
+			for (int y = 0; y < height; y++)
 			{
-				if (polygon[i].x + (testPoint.y - polygon[i].y) / (polygon[j].y - polygon[i].y) * (polygon[j].x - polygon[i].x) < testPoint.x)
+				float squaredDistance = (x - radius) * (x - radius) + (y - radius) * (y - radius);
+
+				if (squaredDistance <= radius * radius)
 				{
-					result = !result;
+					int index = y * width + x;
+					if (pixels[index].a > 0f)
+					{
+						removedPixels = true;
+						//DisassemblePixel(GetPixelToWorld(x, y), pixels[index]);
+						pixels[index] = new Color(0, 0, 0, 0);
+						ReducePixelCountBy(1);
+					}
 				}
 			}
-			j = i;
 		}
-		return result;
+
+		if (removedPixels)
+		{
+			texture.SetPixels(leftBound, bottomBound, width, height, pixels);
+			texture.Apply();
+			Destroy(polygonCollider);
+			polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
+			checkForSplit = true;
+		}
+	}
+	bool IsPointInPolygon(Vector2[] polygon, Vector2 point)
+	{
+		bool isInside = false;
+		for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+		{
+			if (((polygon[i].y > point.y) != (polygon[j].y > point.y)) &&
+				(point.x < (polygon[j].x - polygon[i].x) * (point.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x))
+			{
+				isInside = !isInside;
+			}
+		}
+		return isInside;
 	}
 
-	private void Split()
+	private void CheckForSplit()
 	{
-		Vector2[] mainPath = polygonCollider.GetPath(0);
-		List<Vector2[]> remainingPaths = new();
-		remainingPaths.Add(mainPath);
-
-		for (int i = 1; i < polygonCollider.pathCount; i++)
+		checkForSplit = false;
+		if (polygonCollider.pathCount > 1) 
 		{
-			Vector2[] currentPath = polygonCollider.GetPath(i);
-			bool isContained = false;
+			Vector2[] mainPath = polygonCollider.GetPath(0);
+			List<Vector2[]> remainingPaths = new();
+			remainingPaths.Add(mainPath);
 
-			foreach (Vector2 point in currentPath)
+			for (int i = 1; i < polygonCollider.pathCount; i++)
 			{
-				if (IsPointInPolygon(mainPath, point))
+				Vector2[] currentPath = polygonCollider.GetPath(i);
+				bool isContained = true;
+
+				foreach (Vector2 point in currentPath)
 				{
-					isContained = true;
-					remainingPaths.Add(currentPath);
-					break;
+					if (!IsPointInPolygon(mainPath, point))
+					{
+						isContained = false;
+						break;
+					}
+				}
+
+				if (isContained) remainingPaths.Add(currentPath);
+
+				else
+				{
+					DestroyablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestroyablePlatform>();
+					newPlatform.polygonCollider.pathCount = 1;
+					newPlatform.polygonCollider.SetPath(0, currentPath);
+					newPlatform.RemoveSplitPixels();
 				}
 			}
-
-			if (!isContained)
-			{
-				DestroyablePlatform newPlatform = Instantiate(gameObject).GetComponent<DestroyablePlatform>();
-				newPlatform.polygonCollider.pathCount = 1;
-				newPlatform.polygonCollider.SetPath(0, currentPath);
-				newPlatform.RemoveSplitPixels();
-			}
+			polygonCollider.pathCount = 0;
+			polygonCollider.pathCount = remainingPaths.Count;
+			for (int i = 0; i < polygonCollider.pathCount; i++) polygonCollider.SetPath(i, remainingPaths[i]);
+			RemoveSplitPixels();
 		}
-		polygonCollider.pathCount = 0;
-		polygonCollider.pathCount = remainingPaths.Count;
-		for (int i = 0; i < polygonCollider.pathCount; i++) polygonCollider.SetPath(i, remainingPaths[i]);
-		RemoveSplitPixels();
 	}
 
 
@@ -136,46 +177,7 @@ public class DestroyablePlatform : MonoBehaviour
 
 
 
-	private void RemovePixels(Vector2 position, int radius)
-	{
-		radius = Mathf.RoundToInt(radius / transform.localScale.x);
-		bool removedPixels = false;
-		Vector3 localPos = transform.InverseTransformPoint(position);
-		float pixelsPerUnit = spriteRenderer.sprite.pixelsPerUnit;
-		Vector2 texturePos = new Vector2(localPos.x * pixelsPerUnit, localPos.y * pixelsPerUnit) + new Vector2(texture.width / 2, texture.height / 2);
 
-		int leftBound = Mathf.Max((int)texturePos.x - radius, 0);
-		int rightBound = Mathf.Min((int)texturePos.x + radius, texture.width);
-		int bottomBound = Mathf.Max((int)texturePos.y - radius, 0);
-		int topBound = Mathf.Min((int)texturePos.y + radius, texture.height);
-
-		Color[] pixels = texture.GetPixels();
-		for (int x = leftBound; x < rightBound; x++)
-		{
-			for (int y = bottomBound; y < topBound; y++)
-			{
-				if ((x - texturePos.x) * (x - texturePos.x) + (y - texturePos.y) * (y - texturePos.y) <= radius * radius)
-				{
-					int index = y * texture.width + x;
-					if (pixels[index].a > 0f)
-					{
-						removedPixels = true;
-						DisassemblePixel(GetPixelToWorld(x, y), pixels[index]);
-						pixels[index] = new Color(0, 0, 0, 0);
-						ReducePixelCountBy(1);
-					}
-				}
-			}
-		}
-
-		if (removedPixels)
-		{
-			texture.SetPixels(pixels);
-			texture.Apply();
-			Destroy(polygonCollider);
-			polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
-		}
-	}
 
 	private void DisassemblePixel(Vector2 pos, Color color)
 	{
@@ -185,6 +187,7 @@ public class DestroyablePlatform : MonoBehaviour
 	private void ReducePixelCountBy(int nb)
 	{
 		pixelCount-=nb;
+		
 		if (pixelCount <= 100 / transform.localScale.x) Destroy(gameObject);
 	}
 

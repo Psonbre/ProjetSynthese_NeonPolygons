@@ -1,13 +1,10 @@
 fileFormatVersion: 2
-guid: efc080188e72e1942996878c5836d467
+guid: 65d5e43e28f5c9f42acf1c5920213045
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 4913294696855416780
-    second: 800px_COLOURBOX13020546-removebg-preview (1)_0
-  - first:
-      213: -904798701961956745
-    second: 800px_COLOURBOX13020546-removebg-preview (1)_1
+      213: -2510476293373519475
+    second: New Piskel_0
   externalObjects: {}
   serializedVersion: 12
   mipmaps:
@@ -75,7 +72,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 8192
+    maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: 4
     textureCompression: 0
@@ -113,13 +110,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: 800px_COLOURBOX13020546-removebg-preview (1)_0
+      name: New Piskel_0
       rect:
         serializedVersion: 2
         x: 0
-        y: 0
-        width: 200
-        height: 88
+        y: 13
+        width: 100
+        height: 53
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -127,29 +124,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ccfa0eabe778f2440800000000000000
-      internalID: 4913294696855416780
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: 800px_COLOURBOX13020546-removebg-preview (1)_1
-      rect:
-        serializedVersion: 2
-        x: 43
-        y: 65
-        width: 111
-        height: 24
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 772b258df528173f0800000000000000
-      internalID: -904798701961956745
+      spriteID: d899e6cbc1ff82dd0800000000000000
+      internalID: -2510476293373519475
       vertices: []
       indices: 
       edges: []
@@ -165,8 +141,7 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      800px_COLOURBOX13020546-removebg-preview (1)_0: 4913294696855416780
-      800px_COLOURBOX13020546-removebg-preview (1)_1: -904798701961956745
+      New Piskel_0: -2510476293373519475
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
