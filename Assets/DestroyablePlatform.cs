@@ -50,8 +50,8 @@ public class DestroyablePlatform : MonoBehaviour
 
 		int leftBound = Mathf.Max((int)texturePos.x - radius, 0);
 		int bottomBound = Mathf.Max((int)texturePos.y - radius, 0);
-		int width = Mathf.Min((int)texturePos.x + radius, texture.width) - leftBound;
-		int height = Mathf.Min((int)texturePos.y + radius, texture.height) - bottomBound;
+		int width = Mathf.Max(Mathf.Clamp((int)texturePos.x + radius, 0, texture.width) - leftBound,0);
+		int height = Mathf.Max(Mathf.Clamp((int)texturePos.y + radius, 0, texture.height) - bottomBound,0);
 
 		Color[] pixels = texture.GetPixels(leftBound, bottomBound, width, height);
 		for (int x = 0; x < width; x++)
@@ -66,7 +66,7 @@ public class DestroyablePlatform : MonoBehaviour
 					if (pixels[index].a > 0f)
 					{
 						removedPixels = true;
-						//DisassemblePixel(GetPixelToWorld(x, y), pixels[index]);
+						DisassemblePixel(GetPixelToWorld(x + leftBound, y + bottomBound), pixels[index]);
 						pixels[index] = new Color(0, 0, 0, 0);
 						ReducePixelCountBy(1);
 					}
@@ -137,7 +137,6 @@ public class DestroyablePlatform : MonoBehaviour
 		}
 	}
 
-
 	private void RemoveSplitPixels()
 	{
 		Rect boundingBox = GetColliderBoundingBox(polygonCollider);
@@ -165,8 +164,6 @@ public class DestroyablePlatform : MonoBehaviour
 		texture.Apply();
 	}
 
-
-
 	private Rect GetColliderBoundingBox(PolygonCollider2D collider)
 	{
 		Vector2 min = collider.bounds.min;
@@ -174,10 +171,6 @@ public class DestroyablePlatform : MonoBehaviour
 
 		return new Rect(min.x, min.y, max.x - min.x, max.y - min.y);
 	}
-
-
-
-
 
 	private void DisassemblePixel(Vector2 pos, Color color)
 	{
