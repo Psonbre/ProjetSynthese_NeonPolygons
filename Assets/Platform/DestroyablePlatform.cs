@@ -8,10 +8,12 @@ public class DestroyablePlatform : MonoBehaviour
 	private PolygonCollider2D polygonCollider;
 	private int pixelCount = 100;
 	private bool checkForSplit = false;
+	private SpritePixelCollider2D pixelPerfectColliderScript;
 	[SerializeField] private Pixel pixelPrefab;
 
 	void Awake()
 	{
+		pixelPerfectColliderScript = GetComponent<SpritePixelCollider2D>();
 		spriteRenderer = GetComponent<SpriteRenderer>();
 		texture = DuplicateTexture(spriteRenderer.sprite.texture);
 		spriteRenderer.sprite = Sprite.Create(texture, spriteRenderer.sprite.rect, new Vector2(0.5f, 0.5f));
@@ -88,9 +90,11 @@ public class DestroyablePlatform : MonoBehaviour
 		{
 			texture.SetPixels(leftBound, bottomBound, width, height, pixels);
 			texture.Apply();
-			Destroy(polygonCollider);
-			polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
-			checkForSplit = true;
+			pixelPerfectColliderScript.Regenerate();
+			if (polygonCollider.pathCount > 1) CheckForSplit();
+			//Destroy(polygonCollider);
+			//polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
+			//checkForSplit = true;
 		}
 	}
 
