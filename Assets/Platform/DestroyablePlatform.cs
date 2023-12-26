@@ -18,6 +18,7 @@ public class DestroyablePlatform : MonoBehaviour
 		spriteRenderer.sprite = Sprite.Create(texture, spriteRenderer.sprite.rect, new Vector2(0.5f, 0.5f));
 		polygonCollider = GetComponent<PolygonCollider2D>();
 		UpdatePixelCount();
+		CheckPixelCount();
 	}
 
 	private void OnTriggerStay2D(Collider2D collision)
@@ -91,7 +92,6 @@ public class DestroyablePlatform : MonoBehaviour
 
 	private void CheckForSplit()
 	{
-		checkForSplit = false;
 		if (polygonCollider.pathCount > 1)
 		{
 			Vector2[] mainPath = polygonCollider.GetPath(0);
@@ -141,19 +141,40 @@ public class DestroyablePlatform : MonoBehaviour
 
 	private void RemoveSplitPixels()
 	{
-		Rect boundingBox = GetColliderBoundingBox(polygonCollider);
-		Color[] pixels = texture.GetPixels();
+		float pixelsPerUnit = spriteRenderer.sprite.pixelsPerUnit;
+		Vector3 spriteCenterInWorld = spriteRenderer.bounds.center;
+		Vector3 colliderCenterInWorld = polygonCollider.bounds.center;
+
+		Vector3 centerOffsetLocal = transform.InverseTransformPoint(colliderCenterInWorld) - transform.InverseTransformPoint(spriteCenterInWorld);
+		
+
+		Vector2 textureCenter = new Vector2(texture.width / 2, texture.height / 2);
+		Vector2 colliderCenterInTexture = textureCenter + new Vector2(centerOffsetLocal.x * pixelsPerUnit, centerOffsetLocal.y * pixelsPerUnit);
+
+		Vector2 colliderSizeInTexture = new Vector2(polygonCollider.bounds.size.x * pixelsPerUnit, polygonCollider.bounds.size.y * pixelsPerUnit);
+
+		int leftBound = Mathf.Clamp(Mathf.FloorToInt(colliderCenterInTexture.x - colliderSizeInTexture.x / 2), 0, texture.width);
+		int bottomBound = Mathf.Clamp(Mathf.FloorToInt(colliderCenterInTexture.y - colliderSizeInTexture.y / 2), 0, texture.height);
+		int rightBound = Mathf.Clamp(Mathf.CeilToInt(colliderCenterInTexture.x + colliderSizeInTexture.x / 2), 0, texture.width);
+		int topBound = Mathf.Clamp(Mathf.CeilToInt(colliderCenterInTexture.y + colliderSizeInTexture.y / 2), 0, texture.height);
+
+		int width = rightBound - leftBound;
+		int height = topBound - bottomBound;
+
 		Color transparent = new Color(0, 0, 0, 0);
-		for (int y = 0; y < texture.height; y++)
+		if (width <= 0 || height <= 0) return;
+
+		Color[] pixels = texture.GetPixels(leftBound, bottomBound, width, height);
+		for (int x = 0; x < width; x++)
 		{
-			for (int x = 0; x < texture.width; x++)
+			for (int y = 0; y < height; y++)
 			{
-				int i = y * texture.width + x;
+				int i = y * width + x;  // Corrected index calculation
 				if (pixels[i].a > 0)
 				{
-					Vector2 worldPoint = GetPixelToWorld(x, y);
+					Vector2 worldPoint = GetPixelToWorld(x + leftBound, y + bottomBound); // Assuming GetPixelToWorld is correctly implemented
 
-					if (!boundingBox.Contains(worldPoint) || !polygonCollider.OverlapPoint(worldPoint))
+					if (!polygonCollider.OverlapPoint(worldPoint))
 					{
 						pixels[i] = transparent;
 						ReducePixelCountBy(1);
@@ -162,16 +183,13 @@ public class DestroyablePlatform : MonoBehaviour
 			}
 		}
 
-		texture.SetPixels(pixels);
+		Color[] clearCanvas = new Color[texture.width*texture.height];
+		texture.SetPixels(clearCanvas);
+		texture.SetPixels(leftBound, bottomBound, width, height, pixels);
 		texture.Apply();
-	}
-
-	private Rect GetColliderBoundingBox(PolygonCollider2D collider)
-	{
-		Vector2 min = collider.bounds.min;
-		Vector2 max = collider.bounds.max;
-
-		return new Rect(min.x, min.y, max.x - min.x, max.y - min.y);
+		pixelCount = 0;
+		foreach (Color pixel in pixels) if (pixel.a > 0) pixelCount++;
+		CheckPixelCount();
 	}
 
 	private void DisassemblePixel(Vector2 pos, Color color)
@@ -179,11 +197,15 @@ public class DestroyablePlatform : MonoBehaviour
 		PixelManager.Instance.GetPixel().Initialize(pos, (100f / spriteRenderer.sprite.pixelsPerUnit) * transform.localScale.x, color);
 	}
 
+	private void CheckPixelCount()
+	{
+		if (pixelCount <= 25 / transform.localScale.x) Destroy(gameObject);
+	}
+
 	private void ReducePixelCountBy(int nb)
 	{
 		pixelCount-=nb;
-		
-		if (pixelCount <= 25 / transform.localScale.x) Destroy(gameObject);
+		CheckPixelCount();	
 	}
 
 	private void UpdatePixelCount()

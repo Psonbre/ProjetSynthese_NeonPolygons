@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 3092794838635908111}
   - component: {fileID: 2210788303205611418}
   - component: {fileID: 1042103685430753780}
-  - component: {fileID: 2783411604499105749}
-  - component: {fileID: 5857725002964804638}
+  - component: {fileID: 8635620676127565220}
+  - component: {fileID: 8429224534140660026}
   m_Layer: 0
   m_Name: DestroyablePlatform
   m_TagString: Untagged
@@ -128,7 +128,7 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!60 &2783411604499105749
+--- !u!60 &8635620676127565220
 PolygonCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -351,7 +351,7 @@ PolygonCollider2D:
       - {x: 0.39, y: -0.22999999}
       - {x: 0.39999998, y: -0.22999999}
   m_UseDelaunayMesh: 0
---- !u!114 &5857725002964804638
+--- !u!114 &8429224534140660026
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

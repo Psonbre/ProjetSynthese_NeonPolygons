@@ -70,33 +70,55 @@ public sealed class SpritePixelCollider2D : MonoBehaviour
             PGC2D.SetPath(p, World_Paths[p].ToArray());
         }
     }
-    private List<List<Vector2>> FinalizePaths(List<List<Vector2Int>> Pixel_Paths, Sprite sprite)
-    {
-        Vector2 pivot = sprite.pivot;
-        pivot.x *= Mathf.Abs(sprite.bounds.max.x - sprite.bounds.min.x);
-        pivot.x /= sprite.texture.width;
-        pivot.y *= Mathf.Abs(sprite.bounds.max.y - sprite.bounds.min.y);
-        pivot.y /= sprite.texture.height;
+	private Vector2Int GetOutwardPos(List<Vector2Int> path, int index, Texture2D texture, float alphaCutoff)
+	{
+		Vector2Int current = path[index];
+		Vector2Int prev = path[index > 0 ? index - 1 : path.Count - 1];
+		Vector2Int next = path[(index + 1) % path.Count];
 
-        List<List<Vector2>> Output = new List<List<Vector2>>();
-        for (int p = 0; p < Pixel_Paths.Count; p++)
-        {
-            List<Vector2> Current_List = new List<Vector2>();
-            for (int o = 0; o < Pixel_Paths[p].Count; o++)
-            {
-                Vector2 point = Pixel_Paths[p][o];
-                point.x *= Mathf.Abs(sprite.bounds.max.x - sprite.bounds.min.x);
-                point.x /= sprite.texture.width;
-                point.y *= Mathf.Abs(sprite.bounds.max.y - sprite.bounds.min.y);
-                point.y /= sprite.texture.height;
-                point -= pivot;
-                Current_List.Add(point);
-            }
-            Output.Add(Current_List);
-        }
-        return Output;
-    }
-    private static List<List<Vector2Int>> SimplifyPathsPhase1(List<List<Vector2Int>> Unit_Paths)
+		// Determine the direction vectors
+		Vector2Int dirToPrev = prev - current;
+        dirToPrev = new(Math.Sign(dirToPrev.x), Math.Sign(dirToPrev.y));
+		Vector2Int dirToNext = next - current;
+		dirToNext = new(Math.Sign(dirToNext.x), Math.Sign(dirToNext.y));
+
+		// Check the pixel inside the right angle
+		Vector2Int checkPixel = current + dirToPrev + dirToNext;
+        if (PixelIsSolid(texture, checkPixel, alphaCutoff)) return - dirToPrev - dirToNext;
+        else return dirToPrev + dirToNext;
+	}
+
+	private List<List<Vector2>> FinalizePaths(List<List<Vector2Int>> Pixel_Paths, Sprite sprite)
+	{
+		Vector2 pivot = sprite.pivot;
+		pivot.x *= Mathf.Abs(sprite.bounds.max.x - sprite.bounds.min.x);
+		pivot.x /= sprite.texture.width;
+		pivot.y *= Mathf.Abs(sprite.bounds.max.y - sprite.bounds.min.y);
+		pivot.y /= sprite.texture.height;
+
+		List<List<Vector2>> Output = new List<List<Vector2>>();
+		for (int p = 0; p < Pixel_Paths.Count; p++)
+		{
+			List<Vector2> Current_List = new List<Vector2>();
+			for (int o = 0; o < Pixel_Paths[p].Count; o++)
+			{
+				Vector2 point = Pixel_Paths[p][o];
+				point.x *= Mathf.Abs(sprite.bounds.max.x - sprite.bounds.min.x);
+				point.x /= sprite.texture.width;
+				point.y *= Mathf.Abs(sprite.bounds.max.y - sprite.bounds.min.y);
+				point.y /= sprite.texture.height;
+				point -= pivot;
+
+				//point += (Vector2)GetOutwardPos(Pixel_Paths[p], o, sprite.texture, alphaCutoff) / sprite.pixelsPerUnit;
+
+				Current_List.Add(point);
+			}
+			Output.Add(Current_List);
+		}
+		return Output;
+	}
+
+	private static List<List<Vector2Int>> SimplifyPathsPhase1(List<List<Vector2Int>> Unit_Paths)
     {
         List<List<Vector2Int>> Output = new List<List<Vector2Int>>();
         while (Unit_Paths.Count > 0)
