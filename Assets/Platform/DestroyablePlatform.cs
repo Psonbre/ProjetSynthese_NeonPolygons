@@ -177,7 +177,6 @@ public class DestroyablePlatform : MonoBehaviour
 					if (!polygonCollider.OverlapPoint(worldPoint) && Vector2.Distance(polygonCollider.ClosestPoint(worldPoint), worldPoint) > 1.0f / pixelsPerUnit)
 					{
 						pixels[i] = transparent;
-						ReducePixelCountBy(1);
 					}
 				}
 			}
