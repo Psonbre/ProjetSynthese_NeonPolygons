@@ -169,12 +169,12 @@ public class DestroyablePlatform : MonoBehaviour
 		{
 			for (int y = 0; y < height; y++)
 			{
-				int i = y * width + x;  // Corrected index calculation
+				int i = y * width + x;
 				if (pixels[i].a > 0)
 				{
-					Vector2 worldPoint = GetPixelToWorld(x + leftBound, y + bottomBound); // Assuming GetPixelToWorld is correctly implemented
+					Vector2 worldPoint = GetPixelToWorld(x + leftBound, y + bottomBound);
 
-					if (!polygonCollider.OverlapPoint(worldPoint))
+					if (!polygonCollider.OverlapPoint(worldPoint) && Vector2.Distance(polygonCollider.ClosestPoint(worldPoint), worldPoint) > 1.0f / pixelsPerUnit)
 					{
 						pixels[i] = transparent;
 						ReducePixelCountBy(1);
