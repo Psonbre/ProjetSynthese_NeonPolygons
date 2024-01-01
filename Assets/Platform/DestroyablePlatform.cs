@@ -15,7 +15,7 @@ public class DestroyablePlatform : MonoBehaviour
 		pixelPerfectColliderScript = GetComponent<SpritePixelCollider2D>();
 		spriteRenderer = GetComponent<SpriteRenderer>();
 		texture = DuplicateTexture(spriteRenderer.sprite.texture);
-		spriteRenderer.sprite = Sprite.Create(texture, spriteRenderer.sprite.rect, new Vector2(0.5f, 0.5f));
+		spriteRenderer.sprite = Sprite.Create(texture, spriteRenderer.sprite.rect, new Vector2(0.5f, 0.5f), spriteRenderer.sprite.pixelsPerUnit);
 		polygonCollider = GetComponent<PolygonCollider2D>();
 		UpdatePixelCount();
 		CheckPixelCount();
@@ -193,7 +193,7 @@ public class DestroyablePlatform : MonoBehaviour
 
 	private void DisassemblePixel(Vector2 pos, Color color)
 	{
-		PixelManager.Instance.GetPixel().Initialize(pos, (100f / spriteRenderer.sprite.pixelsPerUnit) * transform.localScale.x, color);
+		PixelManager.Instance.GetPixel().Initialize(pos, (1f / spriteRenderer.sprite.pixelsPerUnit) * transform.localScale.x, color);
 	}
 
 	private void CheckPixelCount()
