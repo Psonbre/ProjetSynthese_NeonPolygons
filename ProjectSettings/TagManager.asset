@@ -7,6 +7,7 @@ TagManager:
   - Explosion
   - Bullet
   - Bounds
+  - Ground
   layers:
   - Default
   - TransparentFX

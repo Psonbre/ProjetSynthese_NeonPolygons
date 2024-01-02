@@ -103,6 +103,9 @@ public class DestroyablePlatform : MonoBehaviour
 			tempCollider.pathCount = 1;
 			tempCollider.SetPath(0, mainPath);
 
+			Player[] players = FindObjectsByType<Player>(FindObjectsSortMode.None);
+			foreach (Player p in players) p.transform.parent = null;
+
 			for (int i = 1; i < polygonCollider.pathCount; i++)
 			{
 				Vector2[] currentPath = polygonCollider.GetPath(i);

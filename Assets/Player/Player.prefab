@@ -127,7 +127,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 75
-  jumpForce: 200
+  stepHeight: 0.01
+  stepCheckDistance: 1.24
+  groundCheckDistance: 0.59
+  capsuleCollider: {fileID: 6859567379353116535}
 --- !u!70 &6859567379353116535
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
